@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String   @default("#3B82F6")
+  items       Item[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Item {
+  id           String     @id @default(cuid())
+  name         String
+  description  String?
+  serialNumber String?    @unique
+  category     Category   @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  condition    Condition  @default(GOOD)
+  qrCode       String     @unique @default(cuid())
+  imageUrl     String?
+  notes        String?
+  isActive     Boolean    @default(true)
+  checkouts    Checkout[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Member {
+  id         String     @id @default(cuid())
+  email      String?    @unique
+  name       String
+  phone      String?
+  role       Role       @default(MEMBER)
+  isActive   Boolean    @default(true)
+  checkouts  Checkout[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Checkout {
+  id             String    @id @default(cuid())
+  item           Item      @relation(fields: [itemId], references: [id])
+  itemId         String
+  member         Member    @relation(fields: [memberId], references: [id])
+  memberId       String
+  checkedOutAt   DateTime  @default(now())
+  expectedReturn DateTime
+  checkedInAt    DateTime?
+  checkoutNotes  String?
+  checkinNotes   String?
+  conditionOut   Condition
+  conditionIn    Condition?
+  checkedOutBy   String    // Admin who processed checkout
+  checkedInBy    String?   // Admin who processed checkin
+  emailSent      Boolean   @default(false)
+}
+
+enum Condition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  DAMAGED
+}
+
+enum Role {
+  ADMIN
+  LEADER
+  MEMBER
+}

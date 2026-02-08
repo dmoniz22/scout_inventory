@@ -26,8 +26,9 @@ interface Item {
   isActive: boolean
 }
 
-export default function EditItemPage({ params }: { params: { id: string } }) {
+export default function EditItemPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const [itemId, setItemId] = useState<string>('')
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -42,9 +43,12 @@ export default function EditItemPage({ params }: { params: { id: string } }) {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    fetchCategories()
-    fetchItem()
-  }, [params.id])
+    params.then(({ id }) => {
+      setItemId(id)
+      fetchCategories()
+      fetchItem(id)
+    })
+  }, [params])
 
   async function fetchCategories() {
     try {
@@ -58,10 +62,10 @@ export default function EditItemPage({ params }: { params: { id: string } }) {
     }
   }
 
-  async function fetchItem() {
+  async function fetchItem(id: string) {
     try {
       setLoading(true)
-      const response = await fetch(`/api/items/${params.id}`)
+      const response = await fetch(`/api/items/${id}`)
       if (response.ok) {
         const item = await response.json()
         setFormData({
@@ -95,14 +99,14 @@ export default function EditItemPage({ params }: { params: { id: string } }) {
 
     try {
       setSaving(true)
-      const response = await fetch(`/api/items/${params.id}`, {
+      const response = await fetch(`/api/items/${itemId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
 
       if (response.ok) {
-        router.push(`/inventory/${params.id}`)
+        router.push(`/inventory/${itemId}`)
       } else {
         const error = await response.json()
         setErrors({ submit: error.error || 'Failed to update item' })
@@ -128,7 +132,7 @@ export default function EditItemPage({ params }: { params: { id: string } }) {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Link
-        href={`/inventory/${params.id}`}
+        href={`/inventory/${itemId}`}
         className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
@@ -209,7 +213,7 @@ export default function EditItemPage({ params }: { params: { id: string } }) {
           {errors.submit && <p className="text-sm text-red-600">{errors.submit}</p>}
 
           <div className="flex justify-end space-x-3 pt-4">
-            <Link href={`/inventory/${params.id}`}>
+            <Link href={`/inventory/${itemId}`}>
               <Button type="button" variant="ghost">
                 Cancel
               </Button>

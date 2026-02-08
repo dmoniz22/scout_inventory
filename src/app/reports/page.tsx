@@ -69,7 +69,7 @@ export default async function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {recentCheckouts.map((checkout) => (
+                {recentCheckouts.map((checkout: typeof recentCheckouts[0]) => (
                   <tr key={checkout.id}>
                     <td className="px-4 py-2 text-sm text-gray-900">{checkout.item.name}</td>
                     <td className="px-4 py-2 text-sm text-gray-600">{checkout.member.name}</td>
@@ -105,7 +105,7 @@ export default async function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {overdueCheckouts.map((checkout) => (
+                  {overdueCheckouts.map((checkout: typeof overdueCheckouts[0]) => (
                     <tr key={checkout.id}>
                       <td className="px-4 py-2 text-sm text-gray-900">{checkout.item.name}</td>
                       <td className="px-4 py-2 text-sm text-gray-600">{checkout.member.name}</td>

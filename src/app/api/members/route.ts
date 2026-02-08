@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform to include active checkout count
-    const membersWithCount = members.map((member) => ({
+    const membersWithCount = members.map((member: typeof members[0]) => ({
       ...member,
       checkoutCount: member._count.checkouts,
     }));

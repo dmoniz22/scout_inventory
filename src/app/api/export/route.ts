@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-function convertToCSV(data: any[], headers: string[]) {
+function convertToCSV(data: Record<string, string | number>[], headers: string[]) {
   const csvRows = [headers.join(",")];
   
   for (const row of data) {
     const values = headers.map((header) => {
-      const value = row[header.toLowerCase().replace(/\s+/g, "_")] || "";
+      const key = header.toLowerCase().replace(/\s+/g, "_");
+      const value = row[key] ?? "";
       return `"${String(value).replace(/"/g, '""')}"`;
     });
     csvRows.push(values.join(","));
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
         include: { category: true },
       });
       
-      const data = items.map((item) => ({
+      const data: Record<string, string>[] = items.map((item: typeof items[0]) => ({
         name: item.name,
         description: item.description || "",
         serial_number: item.serialNumber || "",
@@ -50,7 +51,7 @@ export async function GET(request: Request) {
         orderBy: { checkedOutAt: "desc" },
       });
       
-      const data = checkouts.map((checkout) => ({
+      const data: Record<string, string>[] = checkouts.map((checkout: typeof checkouts[0]) => ({
         item_name: checkout.item.name,
         member_name: checkout.member.name,
         checked_out_at: checkout.checkedOutAt.toISOString(),
@@ -76,7 +77,7 @@ export async function GET(request: Request) {
         orderBy: { expectedReturn: "asc" },
       });
       
-      const data = checkouts.map((checkout) => ({
+      const data: Record<string, string | number>[] = checkouts.map((checkout: typeof checkouts[0]) => ({
         item_name: checkout.item.name,
         member_name: checkout.member.name,
         member_email: checkout.member.email || "",

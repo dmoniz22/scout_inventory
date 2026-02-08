@@ -36,7 +36,7 @@ export async function GET(
     }
 
     // Check if currently checked out
-    const activeCheckout = item.checkouts.find((c) => !c.checkedInAt);
+    const activeCheckout = item.checkouts.find((c: typeof item.checkouts[0]) => !c.checkedInAt);
 
     return NextResponse.json({
       ...item,

@@ -28,7 +28,7 @@ async function getItem(id: string) {
 
   if (!item) return null
 
-  const activeCheckout = item.checkouts.find((c) => !c.checkedInAt)
+  const activeCheckout = item.checkouts.find((c: typeof item.checkouts[0]) => !c.checkedInAt)
 
   return {
     ...item,
@@ -175,7 +175,7 @@ export default async function ItemDetailPage({ params }: Props) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {item.checkouts.map((checkout) => {
+                    {item.checkouts.map((checkout: typeof item.checkouts[0]) => {
                       const isOverdue =
                         !checkout.checkedInAt &&
                         new Date(checkout.expectedReturn) < new Date()

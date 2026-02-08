@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Add availability status
-    const itemsWithAvailability = items.map((item) => ({
+    const itemsWithAvailability = items.map((item: typeof items[0]) => ({
       ...item,
       isAvailable: item.checkouts.length === 0,
     }));
@@ -58,9 +58,9 @@ export async function GET(request: NextRequest) {
     // Filter by availability if requested
     let filteredItems = itemsWithAvailability;
     if (available === "true") {
-      filteredItems = itemsWithAvailability.filter((item) => item.isAvailable);
+      filteredItems = itemsWithAvailability.filter((item: typeof itemsWithAvailability[0]) => item.isAvailable);
     } else if (available === "false") {
-      filteredItems = itemsWithAvailability.filter((item) => !item.isAvailable);
+      filteredItems = itemsWithAvailability.filter((item: typeof itemsWithAvailability[0]) => !item.isAvailable);
     }
 
     return NextResponse.json(filteredItems);

@@ -119,7 +119,7 @@ export default async function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {stats.recentCheckouts.map((checkout) => {
+                {stats.recentCheckouts.map((checkout: typeof stats.recentCheckouts[0]) => {
                   const isOverdue = new Date(checkout.expectedReturn) < new Date();
                   return (
                     <tr key={checkout.id}>

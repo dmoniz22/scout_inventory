@@ -3,11 +3,12 @@ import { prisma } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { qrCode: string } }
+  { params }: { params: Promise<{ qrCode: string }> }
 ) {
   try {
+    const { qrCode } = await params;
     const item = await prisma.item.findUnique({
-      where: { qrCode: params.qrCode },
+      where: { qrCode: qrCode },
       include: {
         category: true,
         checkouts: {

@@ -8,7 +8,7 @@ import { QRGenerator } from '@/components/qr/QRGenerator'
 import Image from 'next/image'
 
 interface Props {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 async function getItem(id: string) {
@@ -23,7 +23,8 @@ async function getItem(id: string) {
 }
 
 export default async function ItemQRPage({ params }: Props) {
-  const item = await getItem(params.id)
+  const { id } = await params;
+  const item = await getItem(id)
 
   if (!item) {
     notFound()

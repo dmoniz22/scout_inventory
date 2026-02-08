@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { ArrowLeft, Edit, Printer, Package, Clock, User } from 'lucide-react'
 
 interface Props {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 async function getItem(id: string) {
@@ -38,7 +38,8 @@ async function getItem(id: string) {
 }
 
 export default async function ItemDetailPage({ params }: Props) {
-  const item = await getItem(params.id)
+  const { id } = await params;
+  const item = await getItem(id)
 
   if (!item) {
     notFound()

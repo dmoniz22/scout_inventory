@@ -3,12 +3,13 @@ import { prisma } from "@/lib/db";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Soft delete by setting isActive to false
     await prisma.member.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { isActive: false },
     });
 

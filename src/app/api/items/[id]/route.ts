@@ -14,11 +14,12 @@ const itemSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const item = await prisma.item.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         category: true,
         checkouts: {
@@ -53,14 +54,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = itemSchema.parse(body);
 
     const item = await prisma.item.update({
-      where: { id: params.id },
+      where: { id: id },
       data: validatedData,
       include: {
         category: true,
@@ -85,12 +87,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Soft delete by setting isActive to false
     await prisma.item.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { isActive: false },
     });
 

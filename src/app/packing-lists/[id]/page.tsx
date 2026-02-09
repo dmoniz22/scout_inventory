@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -33,19 +33,21 @@ interface PackingListItem {
   }
 }
 
-export default function PackingListDetailPage({ params }: { params: { id: string } }) {
+export default function PackingListDetailPage() {
   const router = useRouter()
+  const params = useParams()
+  const id = params.id as string
   const [packingList, setPackingList] = useState<PackingList | null>(null)
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
 
   useEffect(() => {
     fetchPackingList()
-  }, [params.id])
+  }, [id])
 
   async function fetchPackingList() {
     try {
-      const response = await fetch(`/api/packing-lists/${params.id}`)
+      const response = await fetch(`/api/packing-lists/${id}`)
       if (response.ok) {
         const data = await response.json()
         setPackingList(data)
@@ -59,7 +61,7 @@ export default function PackingListDetailPage({ params }: { params: { id: string
 
   async function toggleItem(itemId: string, checked: boolean) {
     try {
-      await fetch(`/api/packing-lists/${params.id}/items/${itemId}`, {
+      await fetch(`/api/packing-lists/${id}/items/${itemId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ checked }),
@@ -116,7 +118,7 @@ export default function PackingListDetailPage({ params }: { params: { id: string
             )}
           </div>
           <div className="flex space-x-2">
-            <Link href={`/packing-lists/${params.id}/print`}>
+            <Link href={`/packing-lists/${id}/print`}>
               <Button variant="outline" size="sm">
                 <Printer className="h-4 w-4 mr-1" />
                 Print

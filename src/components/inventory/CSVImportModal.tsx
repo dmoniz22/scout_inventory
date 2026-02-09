@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { Upload, FileText, CheckCircle, AlertCircle, Download } from 'lucide-react'
+import { Upload, FileText, CheckCircle, AlertCircle, Download, X } from 'lucide-react'
 
 interface ImportResult {
   success: number
@@ -24,8 +24,22 @@ export default function CSVImportModal() {
     if (selectedFile && selectedFile.type === 'text/csv') {
       setFile(selectedFile)
       setResult(null)
-    } else {
+    } else if (selectedFile) {
       alert('Please select a valid CSV file')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  function handleClickUpload() {
+    fileInputRef.current?.click()
+  }
+
+  function handleClearFile() {
+    setFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
 
@@ -83,6 +97,15 @@ Cooking Stove,Portable gas stove,C001,Kitchen,FAIR,Needs new gas canister`;
     window.URL.revokeObjectURL(url)
   }
 
+  function handleClose() {
+    setIsOpen(false)
+    setFile(null)
+    setResult(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   return (
     <>
       <Button variant="outline" onClick={() => setIsOpen(true)}>
@@ -92,14 +115,7 @@ Cooking Stove,Portable gas stove,C001,Kitchen,FAIR,Needs new gas canister`;
 
       <Modal
         isOpen={isOpen}
-        onClose={() => {
-          setIsOpen(false)
-          setFile(null)
-          setResult(null)
-          if (fileInputRef.current) {
-            fileInputRef.current.value = ''
-          }
-        }}
+        onClose={handleClose}
         title="Import Inventory from CSV"
         size="lg"
       >
@@ -130,7 +146,8 @@ Cooking Stove,Portable gas stove,C001,Kitchen,FAIR,Needs new gas canister`;
           </div>
 
           {/* File Upload */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-500 transition-colors">
+          <div>
+            {/* Hidden file input */}
             <input
               ref={fileInputRef}
               type="file"
@@ -139,18 +156,38 @@ Cooking Stove,Portable gas stove,C001,Kitchen,FAIR,Needs new gas canister`;
               className="hidden"
               id="csv-upload"
             />
-            <label
-              htmlFor="csv-upload"
-              className="cursor-pointer flex flex-col items-center justify-center w-full h-full min-h-[120px]"
+            
+            {/* Clickable upload area */}
+            <button
+              onClick={handleClickUpload}
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-500 hover:bg-purple-50 transition-colors"
+              type="button"
             >
-              <FileText className="h-12 w-12 text-gray-400 mb-2" />
-              <span className="text-sm text-gray-600 font-medium">
-                {file ? file.name : 'Click to select CSV file'}
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+              <span className="text-sm text-gray-600 font-medium block">
+                Click to select CSV file
               </span>
-              <span className="text-xs text-gray-400 mt-1">
+              <span className="text-xs text-gray-400 mt-1 block">
                 Maximum file size: 5MB
               </span>
-            </label>
+            </button>
+
+            {/* File selected display */}
+            {file && (
+              <div className="mt-3 p-3 bg-green-50 rounded-lg flex items-center justify-between">
+                <div className="flex items-center">
+                  <FileText className="h-5 w-5 text-green-600 mr-2" />
+                  <span className="text-sm text-green-800 font-medium">{file.name}</span>
+                </div>
+                <button
+                  onClick={handleClearFile}
+                  className="text-green-600 hover:text-green-800"
+                  type="button"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Results */}
@@ -188,7 +225,7 @@ Cooking Stove,Portable gas stove,C001,Kitchen,FAIR,Needs new gas canister`;
           <div className="flex justify-end space-x-3">
             <Button
               variant="ghost"
-              onClick={() => setIsOpen(false)}
+              onClick={handleClose}
             >
               Close
             </Button>

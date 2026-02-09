@@ -1,237 +1,110 @@
 'use client'
 
-import { useState, useEffect, useRef, Component, ReactNode } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Camera, AlertCircle, RefreshCw } from 'lucide-react'
-
-// Error Boundary Component
-class ScannerErrorBoundary extends Component<{ children: ReactNode; onError: (error: Error) => void }> {
-  componentDidCatch(error: Error) {
-    this.props.onError(error)
-  }
-
-  render() {
-    return this.props.children
-  }
-}
 
 interface QRScannerProps {
   onScan: (decodedText: string) => void
 }
 
-function QRScannerInner({ onScan }: QRScannerProps) {
+export function QRScanner({ onScan }: QRScannerProps) {
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState<string>('')
   const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([])
   const [selectedCamera, setSelectedCamera] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null)
-  const scannerRef = useRef<any>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [scannerId] = useState(() => 'qr-scanner-' + Math.random().toString(36).substr(2, 9))
 
+  // Load cameras on mount
   useEffect(() => {
-    let isMounted = true
+    let mounted = true
 
-    const initCameras = async () => {
+    const loadCameras = async () => {
       try {
-        if (typeof window === 'undefined') return
+        const { Html5Qrcode } = await import('html5-qrcode')
+        const devices = await Html5Qrcode.getCameras()
         
-        console.log('QR Scanner: Initializing...')
-        
-        // Check for camera permission first
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-          stream.getTracks().forEach(track => track.stop())
-          if (isMounted) setHasPermission(true)
-        } catch (permErr) {
-          console.error('Camera permission error:', permErr)
-          if (isMounted) {
-            setHasPermission(false)
-            setError('Camera permission denied. Please allow camera access in your browser settings.')
-          }
-          return
-        }
-        
-        // Dynamically import html5-qrcode
-        let Html5Qrcode
-        try {
-          const module = await import('html5-qrcode')
-          Html5Qrcode = module.Html5Qrcode
-        } catch (importErr) {
-          console.error('Failed to import html5-qrcode:', importErr)
-          if (isMounted) setError('Failed to load QR scanner library')
-          return
-        }
-        
-        // Get cameras
-        let devices
-        try {
-          devices = await Html5Qrcode.getCameras()
-        } catch (camErr: any) {
-          console.error('Error getting cameras:', camErr)
-          if (isMounted) setError('Failed to access cameras: ' + (camErr?.message || 'Unknown error'))
-          return
-        }
-        
-        console.log('QR Scanner: Found', devices?.length || 0, 'cameras')
-        
-        if (isMounted) {
-          if (devices && devices.length > 0) {
-            setCameras(devices)
-            setSelectedCamera(devices[0].id)
-            setError('')
-          } else {
-            setError('No cameras found on this device')
-          }
+        if (!mounted) return
+
+        if (devices && devices.length > 0) {
+          setCameras(devices)
+          setSelectedCamera(devices[0].id)
+        } else {
+          setError('No cameras found')
         }
       } catch (err: any) {
-        console.error('QR Scanner initialization error:', err)
-        if (isMounted) {
-          setError('Scanner error: ' + (err?.message || 'Unknown error'))
-        }
+        if (!mounted) return
+        console.error('Camera error:', err)
+        setError('Failed to access cameras')
       }
     }
 
-    initCameras()
+    loadCameras()
 
     return () => {
-      isMounted = false
-      if (scannerRef.current) {
-        try {
-          scannerRef.current.stop()
-        } catch (e) {
-          // Ignore
-        }
-      }
+      mounted = false
     }
   }, [])
 
-  const startScanning = async () => {
+  const startScanning = useCallback(async () => {
     if (!selectedCamera) {
-      setError('Please select a camera first')
+      setError('No camera selected')
       return
     }
 
-    if (!containerRef.current) {
-      setError('Scanner container not ready')
-      return
-    }
-
-    setIsLoading(true)
     setError('')
 
     try {
       const { Html5Qrcode } = await import('html5-qrcode')
       
-      // Stop any existing scanner
-      if (scannerRef.current) {
-        try {
-          await scannerRef.current.stop()
-        } catch (e) {
-          // Ignore
-        }
-        scannerRef.current = null
-      }
-
-      // Create scanner
-      const scannerId = 'qr-scanner-' + Date.now()
-      containerRef.current.id = scannerId
-      
       const scanner = new Html5Qrcode(scannerId)
-      scannerRef.current = scanner
-
+      
       await scanner.start(
         selectedCamera,
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
         },
         (decodedText: string) => {
-          // Success
-          try {
-            scanner.stop()
-          } catch (e) {}
+          scanner.stop().catch(() => {})
           setIsScanning(false)
-          setIsLoading(false)
           onScan(decodedText)
         },
-        (errorMessage: string) => {
-          // Scanning errors - ignore "no QR found"
-          if (errorMessage && !errorMessage.includes('No QR code found')) {
-            console.log('Scan error:', errorMessage)
-          }
+        () => {
+          // Ignore scan errors (no QR in view)
         }
       )
 
       setIsScanning(true)
-      setIsLoading(false)
     } catch (err: any) {
-      console.error('Start scanning error:', err)
-      setError('Failed to start camera: ' + (err?.message || 'Unknown error'))
-      setIsScanning(false)
-      setIsLoading(false)
+      console.error('Scan error:', err)
+      setError('Failed to start: ' + (err?.message || 'Unknown error'))
     }
-  }
+  }, [selectedCamera, scannerId, onScan])
 
-  const stopScanning = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop()
-      } catch (e) {}
-      scannerRef.current = null
+  const stopScanning = useCallback(async () => {
+    try {
+      const { Html5Qrcode } = await import('html5-qrcode')
+      // Get existing scanner instance and stop it
+      const scanner = new Html5Qrcode(scannerId)
+      await scanner.stop()
+    } catch (e) {
+      // Ignore stop errors
     }
     setIsScanning(false)
-  }
-
-  // Show loading state while checking permission
-  if (hasPermission === null) {
-    return (
-      <div className="w-full p-8 bg-gray-100 rounded-lg text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Checking camera access...</p>
-      </div>
-    )
-  }
-
-  // Show error if no permission
-  if (hasPermission === false) {
-    return (
-      <div className="w-full p-6 bg-red-50 border border-red-200 rounded-lg">
-        <div className="flex items-center mb-2">
-          <AlertCircle className="h-6 w-6 text-red-500 mr-2" />
-          <h3 className="font-medium text-red-700">Camera Access Required</h3>
-        </div>
-        <p className="text-red-600 text-sm mb-4">
-          Please allow camera access in your browser settings to scan QR codes.
-        </p>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-        >
-          <RefreshCw className="h-4 w-4 inline mr-1" />
-          Retry
-        </button>
-      </div>
-    )
-  }
+  }, [scannerId])
 
   return (
     <div className="w-full">
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-red-700 text-sm font-medium">{error}</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="mt-2 text-sm text-red-600 hover:text-red-800 flex items-center"
-              >
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Retry
-              </button>
-            </div>
-          </div>
+          <p className="text-red-700 text-sm">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 text-sm text-red-600 hover:text-red-800 flex items-center"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Retry
+          </button>
         </div>
       )}
 
@@ -243,7 +116,7 @@ function QRScannerInner({ onScan }: QRScannerProps) {
           <select
             value={selectedCamera}
             onChange={(e) => setSelectedCamera(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
           >
             {cameras.map((camera, index) => (
               <option key={camera.id} value={camera.id}>
@@ -255,9 +128,15 @@ function QRScannerInner({ onScan }: QRScannerProps) {
       )}
 
       <div
-        ref={containerRef}
-        className="rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center"
-        style={{ width: '100%', minHeight: '300px' }}
+        id={scannerId}
+        className="rounded-lg overflow-hidden bg-gray-100"
+        style={{ 
+          width: '100%', 
+          minHeight: '300px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
       >
         {!isScanning && (
           <div className="text-center p-8">
@@ -267,14 +146,13 @@ function QRScannerInner({ onScan }: QRScannerProps) {
                 <p className="text-gray-600 mb-4">Ready to scan</p>
                 <button
                   onClick={startScanning}
-                  disabled={isLoading}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
                 >
-                  {isLoading ? 'Starting...' : 'Start Camera'}
+                  Start Camera
                 </button>
               </>
             )}
-            {!error && cameras.length === 0 && !isLoading && (
+            {!error && cameras.length === 0 && (
               <p className="text-gray-500">Loading cameras...</p>
             )}
           </div>
@@ -285,56 +163,12 @@ function QRScannerInner({ onScan }: QRScannerProps) {
         <div className="mt-4 text-center">
           <button
             onClick={stopScanning}
-            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
           >
             Stop Camera
           </button>
-          <p className="mt-2 text-sm text-gray-500">
-            Point camera at QR code
-          </p>
         </div>
       )}
     </div>
-  )
-}
-
-// Wrapper with error boundary
-export function QRScanner({ onScan }: QRScannerProps) {
-  const [hasError, setHasError] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
-
-  if (hasError) {
-    return (
-      <div className="w-full p-6 bg-red-50 border border-red-200 rounded-lg">
-        <div className="flex items-center mb-2">
-          <AlertCircle className="h-6 w-6 text-red-500 mr-2" />
-          <h3 className="font-medium text-red-700">Scanner Error</h3>
-        </div>
-        <p className="text-red-600 text-sm mb-4">
-          {errorMessage || 'An error occurred loading the QR scanner.'}
-        </p>
-        <button
-          onClick={() => {
-            setHasError(false)
-            setErrorMessage('')
-            window.location.reload()
-          }}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-        >
-          <RefreshCw className="h-4 w-4 inline mr-1" />
-          Reload Scanner
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <ScannerErrorBoundary onError={(err) => {
-      console.error('QR Scanner crashed:', err)
-      setHasError(true)
-      setErrorMessage(err.message)
-    }}>
-      <QRScannerInner onScan={onScan} />
-    </ScannerErrorBoundary>
   )
 }

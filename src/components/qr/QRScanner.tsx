@@ -1,145 +1,165 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { X, Camera, AlertCircle } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Camera, AlertCircle, RefreshCw } from 'lucide-react'
 
 interface QRScannerProps {
   onScan: (decodedText: string) => void
-  onError?: (error: string) => void
-  onClose?: () => void
 }
 
-export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
+export function QRScanner({ onScan }: QRScannerProps) {
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState<string>('')
   const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([])
   const [selectedCamera, setSelectedCamera] = useState<string>('')
-  const [html5QrCode, setHtml5QrCode] = useState<any>(null)
-  const containerId = useRef(`qr-reader-${Math.random().toString(36).substr(2, 9)}`).current
+  const scannerRef = useRef<any>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  // Get available cameras on mount
   useEffect(() => {
-    const initCameras = async () => {
+    // Initialize cameras
+    const getCameras = async () => {
       try {
-        // Dynamically import the library
-        const { Html5Qrcode } = await import('html5-qrcode')
+        if (typeof window === 'undefined') return
         
+        const Html5Qrcode = (await import('html5-qrcode')).Html5Qrcode
         const devices = await Html5Qrcode.getCameras()
+        
         if (devices && devices.length > 0) {
           setCameras(devices)
           setSelectedCamera(devices[0].id)
+          setError('')
         } else {
-          setError('No cameras found on this device')
+          setError('No cameras found. Please ensure your device has a camera.')
         }
-      } catch (err) {
-        console.error('Error getting cameras:', err)
-        setError('Could not access cameras. Please ensure you have granted camera permissions.')
+      } catch (err: any) {
+        console.error('Camera error:', err)
+        setError(err?.message || 'Unable to access camera. Please check permissions.')
       }
     }
 
-    initCameras()
+    getCameras()
+
+    // Cleanup
+    return () => {
+      if (scannerRef.current) {
+        try {
+          scannerRef.current.stop()
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
+      }
+    }
   }, [])
 
-  const stopScanning = useCallback(async () => {
-    if (html5QrCode) {
-      try {
-        await html5QrCode.stop()
-      } catch (e) {
-        console.log('Scanner already stopped or error stopping:', e)
-      }
-      setHtml5QrCode(null)
-    }
-    setIsScanning(false)
-  }, [html5QrCode])
-
   const startScanning = async () => {
-    if (!selectedCamera) {
-      setError('Please select a camera')
+    if (!selectedCamera || !containerRef.current) {
+      setError('Please select a camera first')
       return
     }
 
     try {
       setError('')
       
-      // Dynamically import the library
       const { Html5Qrcode } = await import('html5-qrcode')
       
-      // Create new scanner instance
-      const scanner = new Html5Qrcode(containerId)
-      
+      // Clear any existing scanner
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.stop()
+        } catch (e) {
+          // Ignore
+        }
+      }
+
+      // Create new scanner
+      const scanner = new Html5Qrcode(containerRef.current)
+      scannerRef.current = scanner
+
       await scanner.start(
         selectedCamera,
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
-          aspectRatio: 1,
+          aspectRatio: 1.0,
         },
         (decodedText: string) => {
-          // Success callback
+          // On successful scan
           console.log('QR Code scanned:', decodedText)
+          try {
+            scanner.stop()
+          } catch (e) {
+            // Ignore stop errors
+          }
+          setIsScanning(false)
           onScan(decodedText)
-          stopScanning()
         },
         (errorMessage: string) => {
-          // Error callback - ignore "No QR code found" errors
-          if (!errorMessage.includes('No QR code found') && onError) {
-            onError(errorMessage)
+          // On scan error (this runs frequently while no QR is in view)
+          // Only log real errors, not "no code found"
+          if (!errorMessage?.includes('No QR code found')) {
+            console.log('Scan attempt:', errorMessage)
           }
         }
       )
 
-      setHtml5QrCode(scanner)
       setIsScanning(true)
     } catch (err: any) {
-      console.error('Error starting scanner:', err)
-      setError(err?.message || 'Failed to start camera. Please check permissions.')
+      console.error('Start scanning error:', err)
+      setError(err?.message || 'Failed to start camera. Please try again.')
       setIsScanning(false)
     }
   }
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (html5QrCode) {
-        html5QrCode.stop().catch(console.error)
+  const stopScanning = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop()
+      } catch (e) {
+        // Ignore errors
       }
+      scannerRef.current = null
     }
-  }, [html5QrCode])
+    setIsScanning(false)
+  }
+
+  const retryCameraAccess = () => {
+    setError('')
+    window.location.reload()
+  }
 
   return (
-    <div className="bg-white rounded-lg p-4">
-      {onClose && (
-        <button
-          onClick={() => {
-            stopScanning()
-            onClose()
-          }}
-          className="absolute top-2 right-2 z-20 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
-
+    <div className="w-full">
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start">
-          <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-          <span className="text-red-700 text-sm">{error}</span>
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+              <button
+                onClick={retryCameraAccess}
+                className="mt-2 text-sm text-red-600 hover:text-red-800 flex items-center"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Retry
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       {!isScanning && cameras.length > 0 && (
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Camera
+            Camera
           </label>
           <select
             value={selectedCamera}
             onChange={(e) => setSelectedCamera(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
           >
-            {cameras.map((camera) => (
+            {cameras.map((camera, index) => (
               <option key={camera.id} value={camera.id}>
-                {camera.label || `Camera ${cameras.indexOf(camera) + 1}`}
+                {camera.label || `Camera ${index + 1}`}
               </option>
             ))}
           </select>
@@ -147,21 +167,27 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
       )}
 
       <div
-        id={containerId}
+        ref={containerRef}
         className="rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center"
-        style={{ width: '100%', height: '300px' }}
+        style={{ width: '100%', minHeight: '300px' }}
       >
         {!isScanning && (
           <div className="text-center p-8">
             <Camera className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">Camera ready</p>
-            <button
-              onClick={startScanning}
-              disabled={!selectedCamera}
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Start Scanning
-            </button>
+            {!error && cameras.length > 0 && (
+              <>
+                <p className="text-gray-600 mb-4">Ready to scan</p>
+                <button
+                  onClick={startScanning}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                >
+                  Start Camera
+                </button>
+              </>
+            )}
+            {!error && cameras.length === 0 && (
+              <p className="text-gray-500">Loading cameras...</p>
+            )}
           </div>
         )}
       </div>
@@ -170,16 +196,15 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
         <div className="mt-4 text-center">
           <button
             onClick={stopScanning}
-            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
           >
-            Stop Scanning
+            Stop Camera
           </button>
+          <p className="mt-2 text-sm text-gray-500">
+            Point camera at QR code
+          </p>
         </div>
       )}
-
-      <p className="mt-4 text-xs text-gray-500 text-center">
-        Point your camera at a QR code to scan
-      </p>
     </div>
   )
 }

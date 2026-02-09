@@ -170,13 +170,12 @@ export default function ScanPageContent() {
 
       {showScanner ? (
         <Card title="Scan QR Code">
-          <div className="relative py-4">
-            <QRScanner 
-              onScan={handleScan} 
-              onError={(err) => console.error('Scanner error:', err)}
-              onClose={() => setShowScanner(false)}
-            />
+          <div className="py-4">
+            <QRScanner onScan={handleScan} />
           </div>
+          <p className="text-center text-sm text-gray-500 mt-2">
+            Point your camera at the item's QR code
+          </p>
         </Card>
       ) : scannedItem ? (
         <div className="space-y-6">

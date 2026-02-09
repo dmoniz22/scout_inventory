@@ -71,8 +71,10 @@ export function QRScanner({ onScan }: QRScannerProps) {
         }
       }
 
-      // Create new scanner
-      const scanner = new Html5Qrcode(containerRef.current)
+      // Create new scanner with element ID
+      const containerId = 'qr-scanner-container'
+      containerRef.current.id = containerId
+      const scanner = new Html5Qrcode(containerId)
       scannerRef.current = scanner
 
       await scanner.start(

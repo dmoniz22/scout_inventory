@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
-import { X, Camera } from 'lucide-react'
+import { X, Camera, AlertCircle } from 'lucide-react'
 
 interface QRScannerProps {
   onScan: (decodedText: string) => void
@@ -15,41 +14,43 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
   const [error, setError] = useState<string>('')
   const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([])
   const [selectedCamera, setSelectedCamera] = useState<string>('')
-  const scannerRef = useRef<Html5Qrcode | null>(null)
-  const containerId = 'qr-reader-' + Math.random().toString(36).substr(2, 9)
+  const [html5QrCode, setHtml5QrCode] = useState<any>(null)
+  const containerId = useRef(`qr-reader-${Math.random().toString(36).substr(2, 9)}`).current
 
-  const stopScanning = useCallback(async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop()
-      } catch (e) {
-        console.log('Scanner already stopped')
-      }
-      scannerRef.current = null
-    }
-    setIsScanning(false)
-  }, [])
-
+  // Get available cameras on mount
   useEffect(() => {
-    // Get available cameras
-    Html5Qrcode.getCameras()
-      .then((devices) => {
+    const initCameras = async () => {
+      try {
+        // Dynamically import the library
+        const { Html5Qrcode } = await import('html5-qrcode')
+        
+        const devices = await Html5Qrcode.getCameras()
         if (devices && devices.length > 0) {
           setCameras(devices)
           setSelectedCamera(devices[0].id)
         } else {
           setError('No cameras found on this device')
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Error getting cameras:', err)
         setError('Could not access cameras. Please ensure you have granted camera permissions.')
-      })
-
-    return () => {
-      stopScanning()
+      }
     }
-  }, [stopScanning])
+
+    initCameras()
+  }, [])
+
+  const stopScanning = useCallback(async () => {
+    if (html5QrCode) {
+      try {
+        await html5QrCode.stop()
+      } catch (e) {
+        console.log('Scanner already stopped or error stopping:', e)
+      }
+      setHtml5QrCode(null)
+    }
+    setIsScanning(false)
+  }, [html5QrCode])
 
   const startScanning = async () => {
     if (!selectedCamera) {
@@ -59,9 +60,13 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
 
     try {
       setError('')
+      
+      // Dynamically import the library
+      const { Html5Qrcode } = await import('html5-qrcode')
+      
+      // Create new scanner instance
       const scanner = new Html5Qrcode(containerId)
-      scannerRef.current = scanner
-
+      
       await scanner.start(
         selectedCamera,
         {
@@ -69,12 +74,13 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
           qrbox: { width: 250, height: 250 },
           aspectRatio: 1,
         },
-        (decodedText) => {
+        (decodedText: string) => {
           // Success callback
+          console.log('QR Code scanned:', decodedText)
           onScan(decodedText)
           stopScanning()
         },
-        (errorMessage) => {
+        (errorMessage: string) => {
           // Error callback - ignore "No QR code found" errors
           if (!errorMessage.includes('No QR code found') && onError) {
             onError(errorMessage)
@@ -82,31 +88,42 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
         }
       )
 
+      setHtml5QrCode(scanner)
       setIsScanning(true)
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error starting scanner:', err)
-      setError('Failed to start camera. Please check permissions and try again.')
+      setError(err?.message || 'Failed to start camera. Please check permissions.')
       setIsScanning(false)
     }
   }
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (html5QrCode) {
+        html5QrCode.stop().catch(console.error)
+      }
+    }
+  }, [html5QrCode])
+
   return (
-    <div className="relative bg-white rounded-lg p-4">
+    <div className="bg-white rounded-lg p-4">
       {onClose && (
         <button
           onClick={() => {
             stopScanning()
             onClose()
           }}
-          className="absolute -top-2 -right-2 z-20 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"
+          className="absolute top-2 right-2 z-20 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"
         >
           <X className="h-4 w-4" />
         </button>
       )}
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {error}
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start">
+          <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+          <span className="text-red-700 text-sm">{error}</span>
         </div>
       )}
 
@@ -131,8 +148,8 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
 
       <div
         id={containerId}
-        className="rounded-lg overflow-hidden bg-gray-100 min-h-[300px] flex items-center justify-center"
-        style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}
+        className="rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center"
+        style={{ width: '100%', height: '300px' }}
       >
         {!isScanning && (
           <div className="text-center p-8">
@@ -141,7 +158,7 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
             <button
               onClick={startScanning}
               disabled={!selectedCamera}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Start Scanning
             </button>
@@ -153,7 +170,7 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
         <div className="mt-4 text-center">
           <button
             onClick={stopScanning}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Stop Scanning
           </button>

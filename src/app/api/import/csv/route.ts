@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
         // Validate condition
         const validConditions = ["EXCELLENT", "GOOD", "FAIR", "POOR", "DAMAGED"];
-        const condition = row.condition?.toUpperCase();
+        const condition = row.condition?.toUpperCase() || "";
         const itemCondition = validConditions.includes(condition)
           ? condition
           : "GOOD";

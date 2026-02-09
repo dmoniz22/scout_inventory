@@ -31,7 +31,11 @@ interface Category {
   color: string
 }
 
-export default function InventoryPageContent() {
+interface InventoryPageContentProps {
+  importComponent?: React.ReactNode
+}
+
+export default function InventoryPageContent({ importComponent }: InventoryPageContentProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [items, setItems] = useState<Item[]>([])
@@ -125,12 +129,15 @@ export default function InventoryPageContent() {
             Manage your scout group equipment
           </p>
         </div>
-        <Link href="/inventory/new">
-          <Button className="flex items-center space-x-2">
-            <Plus className="h-4 w-4" />
-            <span>Add Item</span>
-          </Button>
-        </Link>
+        <div className="flex items-center space-x-3">
+          {importComponent}
+          <Link href="/inventory/new">
+            <Button className="flex items-center space-x-2">
+              <Plus className="h-4 w-4" />
+              <span>Add Item</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

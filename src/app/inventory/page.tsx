@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import InventoryPageContent from './InventoryPageContent'
+import CSVImportModal from '@/components/inventory/CSVImportModal'
 
 export default function InventoryPage() {
   return (
@@ -11,7 +12,7 @@ export default function InventoryPage() {
         </div>
       </div>
     }>
-      <InventoryPageContent />
+      <InventoryPageContent importComponent={<CSVImportModal />} />
     </Suspense>
   )
 }

@@ -4,11 +4,12 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Menu, X, Package, ScanLine, Users, BarChart3, Settings } from 'lucide-react'
+import { Menu, X, Package, ScanLine, Users, BarChart3, Settings, ClipboardList } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
   { name: 'Inventory', href: '/inventory', icon: Package },
+  { name: 'Packing Lists', href: '/packing-lists', icon: ClipboardList },
   { name: 'Scan', href: '/scan', icon: ScanLine },
   { name: 'Members', href: '/members', icon: Users },
   { name: 'Reports', href: '/reports', icon: BarChart3 },

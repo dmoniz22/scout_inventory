@@ -130,7 +130,7 @@ Cooking Stove,Portable gas stove,C001,Kitchen,FAIR,Needs new gas canister`;
           </div>
 
           {/* File Upload */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-500 transition-colors">
             <input
               ref={fileInputRef}
               type="file"
@@ -141,10 +141,10 @@ Cooking Stove,Portable gas stove,C001,Kitchen,FAIR,Needs new gas canister`;
             />
             <label
               htmlFor="csv-upload"
-              className="cursor-pointer flex flex-col items-center"
+              className="cursor-pointer flex flex-col items-center justify-center w-full h-full min-h-[120px]"
             >
               <FileText className="h-12 w-12 text-gray-400 mb-2" />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 font-medium">
                 {file ? file.name : 'Click to select CSV file'}
               </span>
               <span className="text-xs text-gray-400 mt-1">

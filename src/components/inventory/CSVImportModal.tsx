@@ -20,14 +20,9 @@ export default function CSVImportModal() {
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selectedFile = e.target.files?.[0]
-    if (selectedFile && selectedFile.type === 'text/csv') {
+    if (selectedFile) {
       setFile(selectedFile)
       setResult(null)
-    } else if (selectedFile) {
-      alert('Please select a valid CSV file')
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
     }
   }
 
@@ -104,164 +99,217 @@ Cooking Stove,Portable gas stove,C001,Kitchen,FAIR,Needs new gas canister`;
     }
   }
 
-  return (
-    <>
+  if (!isOpen) {
+    return (
       <Button variant="outline" onClick={() => setIsOpen(true)}>
         <Upload className="h-4 w-4 mr-1" />
         Import CSV
       </Button>
+    )
+  }
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-              onClick={handleClose}
+  return (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}
+      onClick={handleClose}
+    >
+      <div 
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          maxWidth: '600px',
+          width: '100%',
+          maxHeight: '90vh',
+          overflow: 'auto'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ 
+          padding: '16px 20px', 
+          borderBottom: '1px solid #e5e7eb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>
+            Import Inventory from CSV
+          </h2>
+          <button 
+            onClick={handleClose}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              cursor: 'pointer',
+              padding: '4px'
+            }}
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: '20px' }}>
+          {/* Template Download */}
+          <div style={{ 
+            backgroundColor: '#eff6ff', 
+            padding: '16px', 
+            borderRadius: '8px',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+              CSV Format Requirements
+            </h3>
+            <p style={{ fontSize: '14px', marginBottom: '8px' }}>
+              Your CSV file should have these columns:
+            </p>
+            <ul style={{ fontSize: '14px', marginBottom: '12px', paddingLeft: '20px' }}>
+              <li><strong>name</strong> (required) - Item name</li>
+              <li><strong>category</strong> (required) - Category name</li>
+              <li><strong>description</strong> - Item description</li>
+              <li><strong>serialNumber</strong> - Unique serial number</li>
+              <li><strong>condition</strong> - EXCELLENT, GOOD, FAIR, POOR, or DAMAGED</li>
+              <li><strong>notes</strong> - Additional notes</li>
+            </ul>
+            <button
+              onClick={downloadTemplate}
+              style={{ 
+                fontSize: '14px', 
+                color: '#1d4ed8',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                fontWeight: 500
+              }}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Download Template CSV
+            </button>
+          </div>
+
+          {/* File Upload */}
+          <div style={{ marginBottom: '20px' }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
             />
             
-            {/* Modal */}
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-              {/* Header */}
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Import Inventory from CSV
-                </h3>
+            <button
+              onClick={handleClickUpload}
+              style={{
+                width: '100%',
+                border: '2px dashed #d1d5db',
+                borderRadius: '8px',
+                padding: '24px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                backgroundColor: 'transparent'
+              }}
+              type="button"
+            >
+              <FileText className="h-12 w-12 mx-auto mb-2" style={{ color: '#9ca3af' }} />
+              <span style={{ fontSize: '14px', fontWeight: 500, display: 'block' }}>
+                Click to select CSV file
+              </span>
+              <span style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px', display: 'block' }}>
+                Maximum file size: 5MB
+              </span>
+            </button>
+
+            {file && (
+              <div style={{ 
+                marginTop: '12px', 
+                padding: '12px', 
+                backgroundColor: '#f0fdf4',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <FileText className="h-5 w-5 mr-2" style={{ color: '#16a34a' }} />
+                  <span style={{ fontSize: '14px', fontWeight: 500 }}>{file.name}</span>
+                </div>
                 <button
-                  onClick={handleClose}
-                  className="text-gray-400 hover:text-gray-500"
+                  onClick={handleClearFile}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                  type="button"
                 >
-                  <X className="h-6 w-6" />
+                  <X className="h-4 w-4" style={{ color: '#16a34a' }} />
                 </button>
               </div>
+            )}
+          </div>
 
-              {/* Content */}
-              <div className="px-4 py-5 sm:p-6">
-                <div className="space-y-4">
-                  {/* Template Download */}
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-blue-900 mb-2">
-                      CSV Format Requirements
-                    </h3>
-                    <p className="text-sm text-blue-800 mb-2">
-                      Your CSV file should have these columns:
-                    </p>
-                    <ul className="text-sm text-blue-800 list-disc list-inside mb-3">
-                      <li><strong>name</strong> (required) - Item name</li>
-                      <li><strong>category</strong> (required) - Category name</li>
-                      <li><strong>description</strong> - Item description</li>
-                      <li><strong>serialNumber</strong> - Unique serial number</li>
-                      <li><strong>condition</strong> - EXCELLENT, GOOD, FAIR, POOR, or DAMAGED</li>
-                      <li><strong>notes</strong> - Additional notes</li>
-                    </ul>
-                    <button
-                      onClick={downloadTemplate}
-                      className="inline-flex items-center text-sm text-blue-700 hover:text-blue-900 font-medium"
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Download Template CSV
-                    </button>
-                  </div>
-
-                  {/* File Upload */}
-                  <div>
-                    {/* Hidden file input */}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".csv,text/csv"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    
-                    {/* Clickable upload area */}
-                    <button
-                      onClick={handleClickUpload}
-                      className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-500 hover:bg-purple-50 transition-colors cursor-pointer"
-                      type="button"
-                    >
-                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                      <span className="text-sm text-gray-600 font-medium block">
-                        Click to select CSV file
-                      </span>
-                      <span className="text-xs text-gray-400 mt-1 block">
-                        Maximum file size: 5MB
-                      </span>
-                    </button>
-
-                    {/* File selected display */}
-                    {file && (
-                      <div className="mt-3 p-3 bg-green-50 rounded-lg flex items-center justify-between">
-                        <div className="flex items-center">
-                          <FileText className="h-5 w-5 text-green-600 mr-2" />
-                          <span className="text-sm text-green-800 font-medium">{file.name}</span>
-                        </div>
-                        <button
-                          onClick={handleClearFile}
-                          className="text-green-600 hover:text-green-800"
-                          type="button"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Results */}
-                  {result && (
-                    <div className={`p-4 rounded-lg ${result.failed === 0 ? 'bg-green-50' : 'bg-yellow-50'}`}>
-                      <div className="flex items-center mb-2">
-                        {result.failed === 0 ? (
-                          <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-                        )}
-                        <span className={`font-medium ${result.failed === 0 ? 'text-green-900' : 'text-yellow-900'}`}>
-                          Import Results
-                        </span>
-                      </div>
-                      <p className={`text-sm ${result.failed === 0 ? 'text-green-800' : 'text-yellow-800'}`}>
-                        Successfully imported: {result.success} items
-                        {result.failed > 0 && ` | Failed: ${result.failed} items`}
-                      </p>
-                      
-                      {result.errors.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-sm font-medium text-yellow-900 mb-1">Errors:</p>
-                          <ul className="text-sm text-yellow-800 list-disc list-inside max-h-40 overflow-y-auto">
-                            {result.errors.map((error, index) => (
-                              <li key={index}>{error}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
+          {/* Results */}
+          {result && (
+            <div style={{ 
+              padding: '16px', 
+              borderRadius: '6px',
+              marginBottom: '20px',
+              backgroundColor: result.failed === 0 ? '#f0fdf4' : '#fefce8'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                {result.failed === 0 ? (
+                  <CheckCircle className="h-5 w-5 mr-2" style={{ color: '#16a34a' }} />
+                ) : (
+                  <AlertCircle className="h-5 w-5 mr-2" style={{ color: '#ca8a04' }} />
+                )}
+                <span style={{ fontWeight: 600 }}>
+                  Import Results
+                </span>
+              </div>
+              <p style={{ fontSize: '14px' }}>
+                Successfully imported: {result.success} items
+                {result.failed > 0 && ` | Failed: ${result.failed} items`}
+              </p>
+              
+              {result.errors.length > 0 && (
+                <div style={{ marginTop: '12px' }}>
+                  <p style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>Errors:</p>
+                  <ul style={{ fontSize: '14px', paddingLeft: '20px', maxHeight: '160px', overflow: 'auto' }}>
+                    {result.errors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
                 </div>
-              </div>
-
-              {/* Footer */}
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-row-reverse">
-                <Button
-                  onClick={handleImport}
-                  disabled={!file || loading}
-                  isLoading={loading}
-                  className="ml-3"
-                >
-                  <Upload className="h-4 w-4 mr-1" />
-                  Import Items
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={handleClose}
-                >
-                  Close
-                </Button>
-              </div>
+              )}
             </div>
+          )}
+
+          {/* Actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <Button variant="ghost" onClick={handleClose}>
+              Close
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={!file || loading}
+              isLoading={loading}
+            >
+              <Upload className="h-4 w-4 mr-1" />
+              Import Items
+            </Button>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   )
 }

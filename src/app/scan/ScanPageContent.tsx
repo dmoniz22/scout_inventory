@@ -35,7 +35,7 @@ interface Member {
   email?: string
 }
 
-export default function ScanPage() {
+export default function ScanPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [scannedItem, setScannedItem] = useState<ScannedItem | null>(null)
@@ -217,7 +217,7 @@ export default function ScanPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
                   >
                     <option value="">Select a member</option>
-                    {members.map((member) => (
+                    {members.map((member: Member) => (
                       <option key={member.id} value={member.id}>{member.name}</option>
                     ))}
                   </select>

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { generateQRCode } from '@/lib/qr'
 
 interface QRGeneratorProps {
   value: string
@@ -15,6 +14,9 @@ export function QRGenerator({ value, size = 200, className = '' }: QRGeneratorPr
   const [error, setError] = useState<string>('')
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return
+    
     generateQRCodeImage()
   }, [value])
 
@@ -22,7 +24,16 @@ export function QRGenerator({ value, size = 200, className = '' }: QRGeneratorPr
     try {
       setLoading(true)
       setError('')
-      const dataUrl = await generateQRCode(value)
+      // Dynamically import qrcode only on client
+      const QRCode = (await import('qrcode')).default
+      const dataUrl = await QRCode.toDataURL(value, {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF',
+        },
+      })
       setQrCode(dataUrl)
     } catch (err) {
       setError('Failed to generate QR code')

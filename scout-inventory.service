@@ -1,0 +1,37 @@
+[Unit]
+Description=Scout Inventory Management System
+Documentation=https://github.com/yourusername/scout-inventory
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=dmoniz
+WorkingDirectory=/home/dmoniz/scout_inventory
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+# Start the application
+ExecStart=/usr/bin/npm start
+
+# Restart policy - restart on failure, wait 10 seconds before restart
+Restart=on-failure
+RestartSec=10
+
+# Graceful shutdown
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scout-inventory
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/home/dmoniz/scout_inventory
+
+[Install]
+WantedBy=multi-user.target

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Plus, Edit, Trash2, Users, Package } from 'lucide-react'
+import MemberImportModal from '@/components/members/MemberImportModal'
 
 interface Member {
   id: string
@@ -113,10 +114,13 @@ export default function MembersPage() {
           <h1 className="text-3xl font-bold text-gray-900">Members</h1>
           <p className="text-gray-600 mt-1">Manage scout group members who can borrow equipment</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add Member
-        </Button>
+        <div className="flex items-center space-x-3">
+          <MemberImportModal />
+          <Button onClick={() => setShowAddModal(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Member
+          </Button>
+        </div>
       </div>
 
       <Card>
